@@ -141,7 +141,7 @@ void WebRTCStreamer::initHTTPServer() {
           auto j = nlohmann::json::parse(req.body);
           std::string cmd = j.value("command", "");
           if (cmd == "start")
-            ctx.running = true;
+            ctx.paused = false;
           else if (cmd == "pause")
             ctx.paused = true;
           else if (cmd == "stop")
