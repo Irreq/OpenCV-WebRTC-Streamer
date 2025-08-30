@@ -1,0 +1,9 @@
+[submodule "include/CmdParser"]
+	path = include/CmdParser
+	url = https://github.com/FlorianRappl/CmdParser.git
+[submodule "include/spdlog"]
+	path = include/spdlog
+	url = https://github.com/gabime/spdlog.git
+[submodule "include/cpp-httplib"]
+	path = include/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib
