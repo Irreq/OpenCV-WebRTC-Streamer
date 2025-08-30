@@ -1,0 +1,99 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>OpenCV WebRTC Streamer</title>
+    <style>
+        video {
+            width: 640px;
+            height: 480px;
+            background: #000
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Local OpenCV → WebRTC demo</h3>
+    <div>
+        <button id="start">Start Stream</button>
+        <button id="pause">Pause Stream</button>
+        <button id="stop">Stop Stream</button>
+    </div>
+    <p id="status">Idle</p>
+    <video id="video" autoplay playsinline muted></video>
+
+    <script>
+        (async function () {
+            const status = (s) => { document.getElementById('status').innerText = s; };
+
+            // Create RTCPeerConnection
+            const pc = new RTCPeerConnection({ bundlePolicy: 'max-bundle' });
+
+            pc.ontrack = (e) => {
+                document.getElementById('video').srcObject = e.streams[0];
+                status('Receiving remote stream');
+            };
+
+            pc.onicegatheringstatechange = () => {
+                if (pc.iceGatheringState === 'complete') {
+                    const answer = pc.localDescription;
+                    // Optionally show answer for debug
+                    console.log('Local answer ready');
+                }
+            };
+
+            // Get offer from server
+            status('Fetching offer from server...');
+            let offerResp = await fetch('/offer');
+            if (!offerResp.ok) {
+                status('Offer not ready. Reload page in a moment.');
+                return;
+            }
+            const offer = await offerResp.json();
+
+            // The server is the sender: setRemoteDescription(offer)
+            await pc.setRemoteDescription(offer);
+
+            // create local answer and post it back
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+
+            await fetch('/answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ type: answer.type, sdp: answer.sdp })
+            });
+            status('Connected — waiting video...');
+
+            // control buttons
+            document.getElementById('start').onclick = async () => {
+                await fetch('/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'start' })
+                });
+                status('Started streaming');
+            };
+            document.getElementById('pause').onclick = async () => {
+                await fetch('/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'pause' })
+                });
+                status('Paused streaming');
+            };
+            document.getElementById('stop').onclick = async () => {
+                await fetch('/control', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ command: 'stop' })
+                });
+                status('Stopped streaming');
+            };
+
+        })();
+    </script>
+</body>
+
+</html>
